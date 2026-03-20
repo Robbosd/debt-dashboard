@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AnyVan Debt Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0c10;--surface:#111318;--surface2:#181c24;--border:#1e2430;--accent:#00d4ff;--accent2:#ff6b35;--green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--text:#e8eaf0;--muted:#6b7280;--font-head:'Syne',sans-serif;--font-mono:'DM Mono',monospace;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;line-height:1.6;}
+.header{padding:32px 40px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;}
+.header h1{font-family:var(--font-head);font-size:28px;font-weight:800;color:#fff;}
+.header h1 span{color:var(--accent);}
+.header .meta{color:var(--muted);font-size:11px;text-align:right;}
+.header .meta strong{color:var(--text);display:block;font-size:13px;}
+.page{padding:28px 40px;max-width:1600px;margin:0 auto;}
+.section-label{font-family:var(--font-head);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:32px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.grid{display:grid;gap:16px;}
+.g2{grid-template-columns:1fr 1fr;}
+.g3{grid-template-columns:1fr 1fr 1fr;}
+.g4{grid-template-columns:repeat(4,1fr);}
+.kpi-grid{grid-template-columns:repeat(6,1fr);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:0.4;}
+.card.accent-red::before{background:var(--red);}
+.card.accent-green::before{background:var(--green);}
+.card.accent-yellow::before{background:var(--yellow);}
+.card.accent-orange::before{background:var(--accent2);}
+.card-label{font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.card-value{font-family:var(--font-head);font-size:26px;font-weight:800;color:#fff;line-height:1.1;}
+.card-sub{font-size:11px;color:var(--muted);margin-top:6px;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;}
+.chart-card h3{font-family:var(--font-head);font-size:13px;font-weight:700;margin-bottom:16px;color:var(--text);}
+.chart-card h3 .accent{color:var(--accent);}
+table{width:100%;border-collapse:collapse;}
+thead tr th{font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+tbody tr td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;}
+tbody tr:hover td{background:var(--surface2);}
+tbody tr:last-child td{border-bottom:none;}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+.warn{color:var(--yellow);}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;}
+.badge-warn{background:rgba(243,156,18,0.15);color:var(--yellow);border:1px solid rgba(243,156,18,0.3);}
+.seg-badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;color:#fff;font-family:var(--font-head);}
+.seg-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;}
+.seg-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.seg-title{font-family:var(--font-head);font-size:14px;font-weight:700;}
+.seg-stat{margin-left:auto;text-align:right;}
+.seg-stat .big{font-family:var(--font-head);font-size:18px;font-weight:800;color:#fff;}
+.seg-stat .small{font-size:11px;color:var(--muted);}
+.seg-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.seg-row:last-child{border-bottom:none;}
+.seg-desc{font-size:11px;color:var(--muted);margin-bottom:0;}
+.lf-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+.lf-stat{background:var(--surface2);border-radius:8px;padding:12px 16px;}
+.lf-stat .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.lf-stat .val{font-family:var(--font-head);font-size:20px;font-weight:700;color:#fff;}
+.scroll-table{max-height:280px;overflow-y:auto;}
+.scroll-table::-webkit-scrollbar{width:4px;}
+.scroll-table::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+.footer{padding:24px 40px;border-top:1px solid var(--border);color:var(--muted);font-size:11px;margin-top:40px;}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:2px;">ANYVAN · FINANCE</div>
+    <h1>Debt <span>Dashboard</span></h1>
+  </div>
+  <div class="meta"><strong>Generated 20 March 2026</strong>Data from 1 Jan 2024 · Zoho Books EU</div>
+</div>
+<div class="page">
+  <div class="section-label">Key Metrics</div>
+  <div class="grid kpi-grid">
+    <div class="card accent-red"><div class="card-label">Total Overdue</div><div class="card-value">£45,055.76</div><div class="card-sub">Outstanding balance</div></div>
+    <div class="card"><div class="card-label">Customers in Debt</div><div class="card-value">153</div><div class="card-sub">With overdue invoices</div></div>
+    <div class="card"><div class="card-label">DSO This Month</div><div class="card-value">8.4d</div><div class="card-sub">Benchmark: 30–45 days</div></div>
+    <div class="card accent-green"><div class="card-label">CEI This Month</div><div class="card-value">77.1%</div><div class="card-sub">Collection effectiveness</div></div>
+    <div class="card accent-yellow"><div class="card-label">Revenue at Risk</div><div class="card-value">£19,437.61</div><div class="card-sub">Segment B · 30-day fwd</div></div>
+    <div class="card accent-orange"><div class="card-label">Write-off Rate</div><div class="card-value">0.8%</div><div class="card-sub">% of revenue this month</div></div>
+  </div>
+
+  <div class="section-label">Collection Rate · Last 6 Months</div>
+  <div class="chart-card">
+    <h3>Cumulative Collection Curve — <span class="accent">% of month revenue collected by day bucket</span></h3>
+    <div style="position:relative;height:320px"><canvas id="collectionChart"></canvas></div>
+  </div>
+
+  <div class="section-label">Debt Trends &amp; Aging</div>
+  <div class="grid g3">
+    <div class="chart-card"><h3>Monthly Overdue Trend</h3><div style="position:relative;height:200px"><canvas id="trendChart"></canvas></div></div>
+    <div class="chart-card"><h3>Aging Buckets</h3><div style="position:relative;height:200px"><canvas id="agingChart"></canvas></div></div>
+    <div class="chart-card"><h3>% Month Revenue Still Outstanding</h3><div style="position:relative;height:200px"><canvas id="monthlyPctChart"></canvas></div></div>
+  </div>
+
+  <div class="section-label">Performance Metrics</div>
+  <div class="grid g4">
+    <div class="chart-card"><h3>DSO Trend</h3><div style="position:relative;height:160px"><canvas id="dsoChart"></canvas></div></div>
+    <div class="chart-card"><h3>CEI Trend</h3><div style="position:relative;height:160px"><canvas id="ceiChart"></canvas></div></div>
+    <div class="chart-card"><h3>Avg Days Late</h3><div style="position:relative;height:160px"><canvas id="lateChart"></canvas></div></div>
+    <div class="chart-card"><h3>Write-off Rate %</h3><div style="position:relative;height:160px"><canvas id="woChart"></canvas></div></div>
+  </div>
+
+  <div class="section-label">Debt Composition</div>
+  <div class="grid g2">
+    <div class="chart-card">
+      <h3>Debt Concentration — Top 5 Customers</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center">
+        <div style="position:relative;height:200px"><canvas id="concChart"></canvas></div>
+        <div><div class="seg-row"><span style="font-size:11px">Fatima Abdalla</span><span class="num" style="font-size:12px">£2,712.74</span></div><div class="seg-row"><span style="font-size:11px">Marcus Lorenzo</span><span class="num" style="font-size:12px">£1,707.28</span></div><div class="seg-row"><span style="font-size:11px">Sarah Bird</span><span class="num" style="font-size:12px">£1,439.40</span></div><div class="seg-row"><span style="font-size:11px">Chloe Neal</span><span class="num" style="font-size:12px">£1,223.08</span></div><div class="seg-row"><span style="font-size:11px">Maria Vardanyan</span><span class="num" style="font-size:12px">£1,199.52</span></div><div class="seg-row" style="color:var(--muted)"><span>Others</span><span class="num">£36,773.74</span></div></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>New vs Returning Debtors</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">New Debtors</div>
+          <div style="font-family:var(--font-head);font-size:28px;font-weight:800;color:var(--red)">6</div>
+          <div style="font-size:12px;color:var(--muted)">£4,587.50</div>
+          <div class="scroll-table" style="margin-top:12px;max-height:160px"><table><tbody><tr><td style="font-size:11px">Fatima Abdalla</td><td class="num" style="font-size:11px">£2,712.74</td></tr><tr><td style="font-size:11px">Sarah Bird</td><td class="num" style="font-size:11px">£1,439.40</td></tr><tr><td style="font-size:11px">Ghadah Almubarak</td><td class="num" style="font-size:11px">£226.75</td></tr><tr><td style="font-size:11px">Tracy Jones</td><td class="num" style="font-size:11px">£92.00</td></tr><tr><td style="font-size:11px">Gavin Dickinson</td><td class="num" style="font-size:11px">£72.99</td></tr><tr><td style="font-size:11px">Michael Curtis</td><td class="num" style="font-size:11px">£43.62</td></tr></tbody></table></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Returning Debtors</div>
+          <div style="font-family:var(--font-head);font-size:28px;font-weight:800;color:var(--yellow)">147</div>
+          <div style="font-size:12px;color:var(--muted)">£40,468.26</div>
+          <div class="scroll-table" style="margin-top:12px;max-height:160px"><table><tbody><tr><td style="font-size:11px">Marcus Lorenzo</td><td class="num" style="font-size:11px">£1,707.28</td></tr><tr><td style="font-size:11px">Chloe Neal</td><td class="num" style="font-size:11px">£1,223.08</td></tr><tr><td style="font-size:11px">Maria Vardanyan</td><td class="num" style="font-size:11px">£1,199.52</td></tr><tr><td style="font-size:11px">Darren Jones</td><td class="num" style="font-size:11px">£1,189.72</td></tr><tr><td style="font-size:11px">Ferial bahsali</td><td class="num" style="font-size:11px">£1,165.57</td></tr><tr><td style="font-size:11px">LUCILLE JULIEN</td><td class="num" style="font-size:11px">£1,099.74</td></tr></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Customer Debt Segments</div>
+  <div class="grid g3">
+    <div class="seg-panel">
+      <div class="seg-header"><span class="seg-badge" style="background:var(--red);font-size:14px">A</span><div><div class="seg-title">Never Paid</div><div class="seg-desc">No payment history</div></div><div class="seg-stat"><div class="big">6</div><div class="small">£4,587.50</div></div></div>
+      <div class="scroll-table"><div class='seg-row'><span>Fatima Abdalla</span><span class='num'>£2,712.74</span></div><div class='seg-row'><span>Sarah Bird</span><span class='num'>£1,439.40</span></div><div class='seg-row'><span>Ghadah Almubarak</span><span class='num'>£226.75</span></div><div class='seg-row'><span>Tracy Jones</span><span class='num'>£92.00</span></div><div class='seg-row'><span>Gavin Dickinson</span><span class='num'>£72.99</span></div><div class='seg-row'><span>Michael Curtis</span><span class='num'>£43.62</span></div></div>
+    </div>
+    <div class="seg-panel">
+      <div class="seg-header"><span class="seg-badge" style="background:var(--yellow);font-size:14px">B</span><div><div class="seg-title">Stopped Paying</div><div class="seg-desc">5+ paid, last 3 overdue</div></div><div class="seg-stat"><div class="big">42</div><div class="small">£16,629.31</div></div></div>
+      <div class="scroll-table"><div class='seg-row'><span>Marcus Lorenzo</span><span class='num'>£1,707.28</span></div><div class='seg-row'><span>Chloe Neal</span><span class='num'>£1,223.08</span></div><div class='seg-row'><span>Ferial bahsali</span><span class='num'>£1,165.57</span></div><div class='seg-row'><span>Sam Hwang</span><span class='num'>£1,049.70</span></div><div class='seg-row'><span>Andrew Yeo</span><span class='num'>£1,013.32</span></div><div class='seg-row'><span>Nasser Alabduljaleel</span><span class='num'>£879.56</span></div><div class='seg-row'><span>Liam West</span><span class='num'>£839.88</span></div><div class='seg-row'><span>Melania Tauro</span><span class='num'>£799.40</span></div></div>
+    </div>
+    <div class="seg-panel">
+      <div class="seg-header"><span class="seg-badge" style="background:#3498db;font-size:14px">C</span><div><div class="seg-title">Occasional Misser</div><div class="seg-desc">Generally pays, some gaps</div></div><div class="seg-stat"><div class="big">105</div><div class="small">£23,838.95</div></div></div>
+      <div class="scroll-table"><div class='seg-row'><span>Maria Vardanyan</span><span class='num'>£1,199.52</span></div><div class='seg-row'><span>Darren Jones</span><span class='num'>£1,189.72</span></div><div class='seg-row'><span>LUCILLE JULIEN</span><span class='num'>£1,099.74</span></div><div class='seg-row'><span>Murat Turel</span><span class='num'>£1,010.00</span></div><div class='seg-row'><span>Melanie Mills</span><span class='num'>£1,002.77</span></div><div class='seg-row'><span>Veronica Mccue</span><span class='num'>£907.99</span></div><div class='seg-row'><span>ELVIRA BRIANT</span><span class='num'>£815.66</span></div><div class='seg-row'><span>Jacqueline C Mustard</span><span class='num'>£671.72</span></div></div>
+    </div>
+  </div>
+
+  <div class="section-label">Top 10 Debtors</div>
+  <div class="chart-card">
+    <table>
+      <thead><tr><th>Customer</th><th class="num">Outstanding</th><th>Oldest Invoice</th><th class="num">Max Days Overdue</th><th>Segment</th><th>Flag</th></tr></thead>
+      <tbody><tr><td>Fatima Abdalla</td><td class='num'>£2,712.74</td><td>2025-07-16</td><td class='num'>247d</td><td><span class='seg-badge' style='background:#e74c3c'>A</span></td><td></td></tr><tr><td>Marcus Lorenzo</td><td class='num'>£1,707.28</td><td>2025-04-23</td><td class='num'>331d</td><td><span class='seg-badge' style='background:#f39c12'>B</span></td><td></td></tr><tr><td>Sarah Bird</td><td class='num'>£1,439.40</td><td>2025-03-12</td><td class='num'>373d</td><td><span class='seg-badge' style='background:#e74c3c'>A</span></td><td></td></tr><tr><td>Chloe Neal</td><td class='num'>£1,223.08</td><td>2025-07-21</td><td class='num'>242d</td><td><span class='seg-badge' style='background:#f39c12'>B</span></td><td></td></tr><tr><td>Maria Vardanyan</td><td class='num'>£1,199.52</td><td>2026-03-19</td><td class='num'>1d</td><td><span class='seg-badge' style='background:#3498db'>C</span></td><td></td></tr><tr><td>Darren Jones</td><td class='num'>£1,189.72</td><td>2025-07-30</td><td class='num'>233d</td><td><span class='seg-badge' style='background:#3498db'>C</span></td><td></td></tr><tr><td>Ferial bahsali</td><td class='num'>£1,165.57</td><td>2025-04-18</td><td class='num'>336d</td><td><span class='seg-badge' style='background:#f39c12'>B</span></td><td></td></tr><tr><td>LUCILLE JULIEN</td><td class='num'>£1,099.74</td><td>2025-12-10</td><td class='num'>100d</td><td><span class='seg-badge' style='background:#3498db'>C</span></td><td></td></tr><tr><td>Sam Hwang</td><td class='num'>£1,049.70</td><td>2025-11-12</td><td class='num'>128d</td><td><span class='seg-badge' style='background:#f39c12'>B</span></td><td></td></tr><tr><td>Andrew Yeo</td><td class='num'>£1,013.32</td><td>2025-04-25</td><td class='num'>329d</td><td><span class='seg-badge' style='background:#f39c12'>B</span></td><td></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="section-label">Risk Signals</div>
+  <div class="grid g3">
+    <div class="chart-card">
+      <h3>⚠ Watch List — <span class="accent">Deteriorating Payers</span></h3>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px">Avg days-to-pay up 20%+ vs prior 3 months</p>
+      <div class="scroll-table"><table><thead><tr><th>Customer</th><th class="num">Prior Avg</th><th class="num">Recent Avg</th><th class="num">Change</th></tr></thead><tbody><tr><td>Michelle White</td><td class='num'>0.2d</td><td class='num'>8.5d</td><td class='num warn'>+4172.7%</td></tr><tr><td>Elizabeth Owen</td><td class='num'>0.2d</td><td class='num'>4.7d</td><td class='num warn'>+2736.4%</td></tr><tr><td>Koji Heonselaers</td><td class='num'>0.8d</td><td class='num'>19.4d</td><td class='num warn'>+2369.1%</td></tr><tr><td>Alexander McLaren</td><td class='num'>0.2d</td><td class='num'>3.7d</td><td class='num warn'>+2322.7%</td></tr><tr><td>Sara Harris</td><td class='num'>0.1d</td><td class='num'>2.3d</td><td class='num warn'>+1970.0%</td></tr><tr><td>Joseph Schoen</td><td class='num'>0.6d</td><td class='num'>11.6d</td><td class='num warn'>+1930.0%</td></tr><tr><td>Kesia Reid</td><td class='num'>0.5d</td><td class='num'>9.2d</td><td class='num warn'>+1893.3%</td></tr><tr><td>Carla Modica</td><td class='num'>0.1d</td><td class='num'>1.5d</td><td class='num warn'>+1754.5%</td></tr><tr><td>Dashanae Wysom</td><td class='num'>0.5d</td><td class='num'>7.0d</td><td class='num warn'>+1200.0%</td></tr><tr><td>Triski Yulrisman</td><td class='num'>1.5d</td><td class='num'>17.6d</td><td class='num warn'>+1071.4%</td></tr></tbody></table></div>
+    </div>
+    <div class="chart-card">
+      <h3>🔄 Revolving Debtors</h3>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px">Cleared debt, now 2+ invoices overdue again</p>
+      <div class="scroll-table"><table><thead><tr><th>Customer</th><th class="num">Outstanding</th><th class="num">Overdue #</th><th>Last Paid</th></tr></thead><tbody><tr><td>Marcus Lorenzo</td><td class='num'>£1,707.28</td><td class='num'>36</td><td>2026-02-11</td></tr><tr><td>Chloe Neal</td><td class='num'>£1,223.08</td><td class='num'>9</td><td>2026-01-26</td></tr><tr><td>Darren Jones</td><td class='num'>£1,189.72</td><td class='num'>14</td><td>2026-03-16</td></tr><tr><td>Ferial bahsali</td><td class='num'>£1,165.57</td><td class='num'>34</td><td>2026-02-20</td></tr><tr><td>LUCILLE JULIEN</td><td class='num'>£1,099.74</td><td class='num'>4</td><td>2026-03-11</td></tr><tr><td>Sam Hwang</td><td class='num'>£1,049.70</td><td class='num'>10</td><td>2026-03-11</td></tr><tr><td>Andrew Yeo</td><td class='num'>£1,013.32</td><td class='num'>30</td><td>2026-02-23</td></tr><tr><td>Murat Turel</td><td class='num'>£1,010.00</td><td class='num'>5</td><td>2026-03-18</td></tr><tr><td>Nasser Alabduljaleel</td><td class='num'>£879.56</td><td class='num'>11</td><td>2025-12-09</td></tr><tr><td>Liam West</td><td class='num'>£839.88</td><td class='num'>12</td><td>2025-12-27</td></tr></tbody></table></div>
+    </div>
+    <div class="chart-card">
+      <h3>💸 Revenue at Risk — <span class="accent">Segment B</span></h3>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:8px">30-day forward exposure if Segment B never pay again</p>
+      <div style="font-family:var(--font-head);font-size:24px;font-weight:800;color:var(--red);margin-bottom:12px">£19,437.61</div>
+      <div class="scroll-table"><table><thead><tr><th>Customer</th><th class="num">Avg Monthly</th><th class="num">Current Owed</th></tr></thead><tbody><tr><td>Sam Hwang</td><td class='num warn'>£3,568.98</td><td class='num'>£1,049.70</td></tr><tr><td>Chloe Neal</td><td class='num warn'>£1,114.16</td><td class='num'>£1,223.08</td></tr><tr><td>Marcus Lorenzo</td><td class='num warn'>£959.60</td><td class='num'>£1,707.28</td></tr><tr><td>Leoni Zhao</td><td class='num warn'>£871.64</td><td class='num'>£95.96</td></tr><tr><td>Claire Rowland</td><td class='num warn'>£851.42</td><td class='num'>£559.84</td></tr><tr><td>Rob Velez</td><td class='num warn'>£783.67</td><td class='num'>£383.84</td></tr><tr><td>Tony Margolis</td><td class='num warn'>£778.31</td><td class='num'>£193.88</td></tr><tr><td>Melania Tauro</td><td class='num warn'>£760.31</td><td class='num'>£799.40</td></tr><tr><td>Exhibition Hub UK Ltd</td><td class='num warn'>£660.00</td><td class='num'>£54.00</td></tr><tr><td>Andrew Yeo</td><td class='num warn'>£626.15</td><td class='num'>£1,013.32</td></tr></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="section-label">Late Fee Performance · £15 Line Items</div>
+  <div class="chart-card">
+    <div class="lf-stats">
+      <div class="lf-stat"><div class="lbl">Raised</div><div class="val">30 <span style="font-size:14px;color:var(--muted)">(£450.00)</span></div></div>
+      <div class="lf-stat"><div class="lbl">Collected</div><div class="val" style="color:var(--green)">28 <span style="font-size:14px;color:var(--muted)">(£420.00)</span></div></div>
+      <div class="lf-stat"><div class="lbl">Collection Rate</div><div class="val" style="color:var(--accent)">93.3%</div></div>
+    </div>
+    <div class="grid g2">
+      <div><div style="position:relative;height:180px"><canvas id="lateFeeChart"></canvas></div></div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Top Late Fee Debtors</div>
+        <div class="scroll-table" style="max-height:180px"><table><thead><tr><th>Customer</th><th class="num">Raised</th><th class="num">Outstanding</th></tr></thead><tbody><tr><td>Kevin Bauer</td><td class='num'>2</td><td class='num warn'>2</td></tr></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">AnyVan Debt Dashboard · Generated 20 March 2026 · Zoho Books EU · 2024–present</div>
+
+<script>
+const MONTHS = ["Oct 2025", "Nov 2025", "Dec 2025", "Jan 2026", "Feb 2026", "Mar 2026"];
+const CD = {
+  plugins:{legend:{labels:{color:'#6b7280',font:{family:'DM Mono',size:11}}}},
+  scales:{
+    x:{ticks:{color:'#6b7280',font:{family:'DM Mono',size:10}},grid:{color:'#1e2430'}},
+    y:{ticks:{color:'#6b7280',font:{family:'DM Mono',size:10}},grid:{color:'#1e2430'}},
+  },
+  animation:{duration:600},
+};
+
+new Chart(document.getElementById('collectionChart'),{type:'line',data:{labels:["<1 or blank", "1-5", "6-10", "11-15", "16-20", "21-25", "26-30", "31-35", "36-40", "41-45", "46-51", ">51"],datasets:[{"label": "Oct 2025", "data": [80.22, 92.35, 95.35, 96.55, 97.29, 97.84, 98.12, 98.35, 98.65, 99.03, 99.12, 100.0], "borderColor": "#00d4ff", "backgroundColor": "transparent", "tension": 0.4, "pointRadius": 4}, {"label": "Nov 2025", "data": [78.73, 93.76, 96.22, 97.32, 97.91, 98.21, 98.46, 98.62, 98.85, 98.96, 99.0, 100.0], "borderColor": "#ff6b35", "backgroundColor": "transparent", "tension": 0.4, "pointRadius": 4}, {"label": "Dec 2025", "data": [80.51, 92.58, 95.21, 95.84, 96.29, 96.94, 97.38, 97.68, 97.86, 98.03, 98.31, 100.0], "borderColor": "#2ecc71", "backgroundColor": "transparent", "tension": 0.4, "pointRadius": 4}, {"label": "Jan 2026", "data": [82.1, 93.46, 95.74, 96.94, 97.6, 98.07, 98.42, 98.77, 98.87, 99.1, 99.3, 100.0], "borderColor": "#f39c12", "backgroundColor": "transparent", "tension": 0.4, "pointRadius": 4}, {"label": "Feb 2026", "data": [82.92, 93.78, 95.28, 97.18, 98.01, 99.25, 99.69, 99.96, 100.0, 100.0, 100.0, 100.0], "borderColor": "#e74c3c", "backgroundColor": "transparent", "tension": 0.4, "pointRadius": 4}, {"label": "Mar 2026", "data": [90.77, 98.88, 99.69, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0], "borderColor": "#9b59b6", "backgroundColor": "transparent", "tension": 0.4, "pointRadius": 4}]},options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toFixed(1)+'%'}}},scales:{x:CD.scales.x,y:{...CD.scales.y,min:70,max:100,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'}}}}});
+
+new Chart(document.getElementById('trendChart'),{type:'bar',data:{labels:MONTHS,datasets:[{label:'Total Overdue £',data:[10525.91, 12357.16, 17245.51, 22901.29, 30421.98, 44433.07],backgroundColor:'rgba(231,76,60,0.6)',borderColor:'#e74c3c',borderWidth:1}]},options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false}}}});
+
+new Chart(document.getElementById('agingChart'),{type:'bar',data:{labels:["0-30", "31-60", "61-90", "90+"],datasets:[{label:'£ Overdue',data:[16602.939999999966, 7747.37999999999, 4343.909999999995, 16361.529999999952],backgroundColor:['rgba(46,204,113,0.7)','rgba(243,156,18,0.7)','rgba(255,107,53,0.7)','rgba(231,76,60,0.8)'],borderWidth:0}]},options:{...CD,indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false}}}});
+
+new Chart(document.getElementById('monthlyPctChart'),{type:'line',data:{labels:MONTHS,datasets:[{label:'% Still Outstanding',data:[0.3, 0.8, 2.2, 2.4, 3.8, 9.2],borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.05)',fill:true,tension:0.4}]},options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false}},scales:{x:CD.scales.x,y:{...CD.scales.y,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'}}}}});
+
+new Chart(document.getElementById('dsoChart'),{type:'line',data:{labels:MONTHS,datasets:[{label:'DSO',data:[1.4, 1.6, 2.3, 3.1, 3.9, 8.4],borderColor:'#00d4ff',tension:0.4,pointRadius:4},{label:'Target 45d',data:Array(MONTHS.length).fill(45),borderColor:'rgba(231,76,60,0.4)',borderDash:[4,4],pointRadius:0}]},options:{...CD,responsive:true,maintainAspectRatio:false}});
+
+new Chart(document.getElementById('ceiChart'),{type:'line',data:{labels:MONTHS,datasets:[{label:'CEI %',data:[95.8, 94.9, 93.0, 90.7, 87.5, 77.1],borderColor:'#2ecc71',tension:0.4,pointRadius:4},{label:'90% target',data:Array(MONTHS.length).fill(90),borderColor:'rgba(243,156,18,0.4)',borderDash:[4,4],pointRadius:0}]},options:{...CD,responsive:true,maintainAspectRatio:false,scales:{x:CD.scales.x,y:{...CD.scales.y,min:0,max:100}}}});
+
+new Chart(document.getElementById('lateChart'),{type:'bar',data:{labels:MONTHS,datasets:[{label:'Avg Days Late',data:[9.4, 9.0, 12.4, 8.4, 5.5, 2.8],backgroundColor:'rgba(255,107,53,0.6)',borderColor:'#ff6b35',borderWidth:1}]},options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false}}}});
+
+new Chart(document.getElementById('woChart'),{type:'bar',data:{labels:MONTHS,datasets:[{label:'Write-off %',data:[4.01, 3.33, 2.59, 1.7, 1.48, 0.8],backgroundColor:'rgba(231,76,60,0.6)',borderColor:'#e74c3c',borderWidth:1}]},options:{...CD,responsive:true,maintainAspectRatio:false,plugins:{...CD.plugins,legend:{display:false}},scales:{x:CD.scales.x,y:{...CD.scales.y,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'}}}}});
+
+new Chart(document.getElementById('concChart'),{type:'doughnut',data:{labels:["Fatima Abdalla", "Marcus Lorenzo", "Sarah Bird", "Chloe Neal", "Maria Vardanyan", "Others"],datasets:[{data:[2712.74, 1707.28, 1439.4, 1223.08, 1199.52, 36773.74],backgroundColor:['#00d4ff','#ff6b35','#2ecc71','#f39c12','#e74c3c','#6b7280'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+
+new Chart(document.getElementById('lateFeeChart'),{type:'bar',data:{labels:["Dec 2024", "Jan 2025", "Feb 2025", "Mar 2025", "Apr 2025", "May 2025", "Jun 2025", "Jul 2025"],datasets:[{label:'Raised',data:[2, 3, 3, 5, 4, 3, 8, 2],backgroundColor:'rgba(0,212,255,0.4)',borderColor:'#00d4ff',borderWidth:1},{label:'Collected',data:[2, 3, 3, 5, 4, 3, 7, 1],backgroundColor:'rgba(46,204,113,0.5)',borderColor:'#2ecc71',borderWidth:1}]},options:{...CD,responsive:true,maintainAspectRatio:false}});
+</script>
+</body>
+</html>
